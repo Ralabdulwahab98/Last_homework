@@ -1,11 +1,19 @@
 class ArtistsController < ApplicationController
+  before_action :authenticate_user!, only: [:new, :show, :index]
+  before_action :find_artists, except: [:new , :index , :create]
     def index
-      @artists = Artist.all
+      @artists = current_user.artists.all
     end
   
     def show
-      @artist = Artist.find(params[:id])
+      # @artist = Artist.find(params[:id])
       @songs = @artist.songs
+
+      if @artist.user != current_user
+        flash[:notice] = 'Not allowed!'
+        redirect_to artists_path
+     end 
+
     end
   
     def new
@@ -13,23 +21,30 @@ class ArtistsController < ApplicationController
     end
   
     def create
-      Artist.create(person_params)
-      redirect_to artists_path
+      # Artist.create(person_params)
+      # redirect_to artists_path
+      @artist = Artist.new(person_params)
+      @artist.user = current_user
+
+      if @artist.save
+          redirect_to @artist
+      else
+          render 'new'
+      end 
     end
   
     def edit
-      @artist = Artist.find(params[:id])
+      @artist
     end
   
     def update
-      artist = Artist.find(params[:id])
-      artist.update(person_params)
+      @artist.update(person_params)
         
-      redirect_to artist
+      redirect_to artists_path
     end
   
     def destroy
-      Artist.find(params[:id]).destroy
+      @artist.delete
     
       redirect_to artists_path
     end
@@ -39,4 +54,8 @@ class ArtistsController < ApplicationController
       def person_params
         params.require(:artist).permit(:name, :albums, :hometown, :img)
       end
+
+      def find_artists
+        @artist = Artist.find(params[:id])
+      end  
   end
